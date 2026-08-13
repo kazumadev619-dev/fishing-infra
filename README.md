@@ -67,3 +67,12 @@ ConfigMap / Secret / Job のみを持つ。
 - 編集は `sops manifests/cloudflared/secret.enc.yaml` の in-place で行い、平文ファイルを作らない。
 - recipient を増減したら `sops updatekeys <file>` で既存暗号文を更新する。
 - 鍵が漏洩したら、現在値だけでなく **git 履歴上の全バージョンの値**をローテーションする。
+
+## 疎通確認済みの経路（2026-08-13）
+
+- `cloudflared access tcp --hostname k8s.kazuma-lab.com --url 127.0.0.1:6443` +
+  `server: https://127.0.0.1:6443` の kubeconfig で `kubectl get pods -n fishing` が通ることを確認。
+- service token は環境変数 `TUNNEL_SERVICE_TOKEN_ID` / `TUNNEL_SERVICE_TOKEN_SECRET` で渡す
+  （`CF_ACCESS_*` という名前の環境変数は cloudflared が読まない）。
+- `/api/*` の Cloudflare キャッシュ無効化ルール（`bypass-cache-api`）を作成済み。
+  動作確認（`cf-cache-status` ヘッダ）はアプリデプロイ後（Task 23）に行う。
