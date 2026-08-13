@@ -1,0 +1,8 @@
+# path_regex はこのファイルのあるディレクトリからの相対パスにマッチする
+creation_rules:
+  - path_regex: .*secret.*\.ya?ml$
+    encrypted_regex: ^(data|stringData)$
+    age: >-
+      age1wwpnls59pm7a542w3s4le2sgrcqpvtxtchxumdl4qhwph4xu25wqpqjxpn,
+      age19243y8pewm9rq8ldjffptyvkfex2ytem2wncdhzj4gl8q0awyqqq0l56wk,
+      age1uugu7jllxc3lpfzn96wm0kylr0v5m5a0adtg25yst5nn5e3muyssrcyys3

@@ -1,0 +1,16 @@
+# 平文シークレット（*.enc.yaml のみ git 管理する）
+**/secret.yaml
+**/credentials.json
+!**/*.enc.yaml
+
+# kubeconfig
+kubeconfig
+kubeconfig.yaml
+*.kubeconfig
+
+# age 鍵
+*.agekey
+keys.txt
+
+# OS
+.DS_Store
