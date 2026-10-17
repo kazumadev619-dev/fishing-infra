@@ -16,6 +16,10 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: redis
+      # monitoring の Alloy（annotationAutodiscovery）が redis_exporter を拾う
+      annotations:
+        k8s.grafana.com/scrape: "true"
+        k8s.grafana.com/metrics.portNumber: "9121"
     spec:
       automountServiceAccountToken: false
       securityContext:
@@ -61,6 +65,26 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /data
+        # キャッシュのヒット率とメモリ使用量を Grafana Cloud に出す（FishingConditionsApp #282）
+        - name: redis-exporter
+          image: oliver006/redis_exporter:v1.80.0
+          env:
+            - name: REDIS_ADDR
+              value: redis://localhost:6379
+          ports:
+            - name: metrics
+              containerPort: 9121
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              memory: "16Mi"
+              cpu: "10m"
+            limits:
+              memory: "32Mi"
       volumes:
         # キャッシュ用途のみ。再起動でのデータ消失は再取得で対応する（ADR-0002 と整合）
         - name: data
