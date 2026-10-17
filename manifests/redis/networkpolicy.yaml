@@ -1,0 +1,30 @@
+# redis Pod への入口を絞る。
+# - 6379: fishing namespace の Pod（Next.js / Go）だけ
+# - 9121: monitoring namespace（Alloy）だけ。redis_exporter の /scrape?target= は
+#   任意の宛先に接続しに行く（SSRF）ため、ほかの Pod から叩かせない
+# probe は exec なので、この制限の影響を受けない。
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: redis-ingress
+  namespace: fishing
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: fishing
+      ports:
+        - port: 6379
+          protocol: TCP
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: monitoring
+      ports:
+        - port: 9121
+          protocol: TCP
