@@ -19,7 +19,7 @@ spec:
       # monitoring の Alloy（annotationAutodiscovery）が redis_exporter を拾う
       annotations:
         k8s.grafana.com/scrape: "true"
-        k8s.grafana.com/metrics.portNumber: "9121"
+        k8s.grafana.com/metrics.portName: metrics
     spec:
       automountServiceAccountToken: false
       securityContext:
