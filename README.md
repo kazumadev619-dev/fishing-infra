@@ -10,6 +10,7 @@ Raspberry Pi 5 上の k3s クラスタで、`FishingConditionsApp`（Next.js）�
 - Redis（キャッシュ。emptyDir なので再起動で消える）
 - CI 用 ServiceAccount と RBAC
 - LimitRange / ResourceQuota / PriorityClass
+- 監視の収集基盤（namespace `monitoring`。Alloy / node-exporter / kube-state-metrics を Grafana Cloud へ）
 
 ## アプリリポジトリが所有してはいけないもの
 
@@ -34,6 +35,7 @@ ConfigMap / Secret / Job のみを持つ。
 | fishing-app（Next.js） | 256Mi | 512Mi | FishingConditionsApp |
 | fishing-api（Go・Stage 5） | 128Mi | 256Mi | Fishing-api |
 | redis | 64Mi | 128Mi | fishing-infra |
+| redis-exporter（redis Pod のサイドカー） | 16Mi | 32Mi | fishing-infra |
 | cloudflared | 64Mi | 128Mi | fishing-infra |
 
 ローリング更新中は対象ワークロードの limits が一時的に 2 倍必要になる。
@@ -60,6 +62,51 @@ ConfigMap / Secret / Job のみを持つ。
 4. **CI トークンを失効させる場合**: `kubectl -n fishing delete secret ci-deployer-token`
    → `kubectl apply -f manifests/rbac/token-secret.yaml` → kubeconfig 再生成 →
    GitHub Secrets 更新。
+
+## 監視（Grafana Cloud）
+
+Pi 上の `monitoring` namespace に k8s-monitoring チャート（4.5.3）を入れ、Grafana Cloud
+（スタック `orangesushi3092`、prod-ap-northeast-0）へ送る。方針は FishingConditionsApp の
+ADR-005 と #282。
+
+| 送るもの | 送り先 |
+|---|---|
+| ノードと Pod のメトリクス、redis_exporter | Prometheus |
+| namespace `fishing` の Pod のログ、k8s イベント | Loki |
+| アプリのトレース（Alloy の 4317 / 4318 で受ける） | OTLP gateway |
+
+`fishing` の ResourceQuota の外（`monitoring`）で動く。Alloy は requests 128Mi / limits 512Mi。
+
+### 初回の手順
+
+1. トークンの Secret を作る。**Claude Code の `!` からは実行しない**（エディタが開けず、平文が会話ログに出る）。
+   自分のターミナルで:
+
+   ```bash
+   sops edit manifests/monitoring/secret.enc.yaml
+   ```
+
+   開いたエディタに次を書いて保存する（`<token>` は Grafana Cloud の access policy
+   `fishing-alloy` のトークン。scope は metrics:write / logs:write / traces:write）。
+
+   ```yaml
+   apiVersion: v1
+   kind: Secret
+   metadata:
+     name: grafana-cloud
+     namespace: monitoring
+   type: Opaque
+   stringData:
+     prometheus-username: "3683143"
+     loki-username: "1837236"
+     otlp-username: "1879460"
+     token: "<token>"
+   ```
+
+2. Pi で `./scripts/install-monitoring.sh` を実行する（helm が要る）。
+3. redis_exporter のサイドカーを入れるため、`./bootstrap.sh` も流す（redis Deployment の更新）。
+
+設定を変えたときも 2 を流せばよい（`helm upgrade --install`）。
 
 ## シークレット運用
 

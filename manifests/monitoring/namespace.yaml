@@ -1,0 +1,11 @@
+# Grafana Cloud へ送る収集基盤（Alloy / node-exporter / kube-state-metrics）。
+# node-exporter はホストの /proc・/sys を読み、Alloy はノードの /var/log を読むため、
+# fishing（restricted）には置けない。この namespace だけ privileged にする。
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    app.kubernetes.io/managed-by: fishing-infra
+    pod-security.kubernetes.io/enforce: privileged
+    pod-security.kubernetes.io/enforce-version: latest

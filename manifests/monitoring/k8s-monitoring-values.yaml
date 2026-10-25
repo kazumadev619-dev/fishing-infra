@@ -1,0 +1,91 @@
+# k8s-monitoring 4.5.3 の values。Grafana Cloud（スタック orangesushi3092 / prod-ap-northeast-0）に送る。
+# トークンは Secret monitoring/grafana-cloud（manifests/monitoring/secret.enc.yaml）にあり、ここには書かない。
+cluster:
+  name: fishing-pi
+
+destinations:
+  grafana-cloud-metrics:
+    type: prometheus
+    url: https://prometheus-prod-49-prod-ap-northeast-0.grafana.net/api/prom/push
+    auth:
+      type: basic
+      usernameKey: prometheus-username
+      passwordKey: token
+    secret:
+      create: false
+      name: grafana-cloud
+      namespace: monitoring
+  grafana-cloud-logs:
+    type: loki
+    url: https://logs-prod-030.grafana.net/loki/api/v1/push
+    auth:
+      type: basic
+      usernameKey: loki-username
+      passwordKey: token
+    secret:
+      create: false
+      name: grafana-cloud
+      namespace: monitoring
+  grafana-cloud-traces:
+    type: otlp
+    protocol: http
+    url: https://otlp-gateway-prod-ap-northeast-0.grafana.net/otlp
+    auth:
+      type: basic
+      usernameKey: otlp-username
+      passwordKey: token
+    secret:
+      create: false
+      name: grafana-cloud
+      namespace: monitoring
+    metrics: {enabled: false}
+    logs: {enabled: false}
+    traces: {enabled: true}
+
+# Pi 1台なので、Alloy は1つにまとめる（DaemonSet = ノード1台で1 Pod）。
+collectors:
+  alloy:
+    presets: [daemonset, clustered, small, filesystem-log-reader]
+
+clusterMetrics:
+  enabled: true
+  collector: alloy
+
+hostMetrics:
+  enabled: true
+  collector: alloy
+  linuxHosts:
+    enabled: true
+    metricsTuning:
+      useIntegrationAllowList: true
+
+clusterEvents:
+  enabled: true
+  collector: alloy
+
+podLogsViaLoki:
+  enabled: true
+  collector: alloy
+  namespaces: [fishing]
+
+# redis_exporter など、k8s.grafana.com/scrape: "true" の注釈が付いた Pod を拾う
+annotationAutodiscovery:
+  enabled: true
+  collector: alloy
+
+# アプリ（#283）の OTLP の受け口。Alloy の Service の 4317 / 4318
+applicationObservability:
+  enabled: true
+  collector: alloy
+  receivers:
+    otlp:
+      grpc:
+        enabled: true
+      http:
+        enabled: true
+
+telemetryServices:
+  kube-state-metrics:
+    deploy: true
+  node-exporter:
+    deploy: true
