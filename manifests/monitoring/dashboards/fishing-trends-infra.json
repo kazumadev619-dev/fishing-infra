@@ -503,7 +503,7 @@
           "unit": "percentunit",
           "custom": {
             "fillOpacity": 10,
-            "spanNulls": true
+            "spanNulls": false
           }
         },
         "overrides": []
